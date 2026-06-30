@@ -5,6 +5,7 @@ from model_design import dh_transform, forward_kinematics, inverse_kinematics, j
 from model_design import g, m1, com1, I_com1, I1, l1, b1, L1
 from model_design import m2, com2, I_com2, I2, l2, b2, L2
 from model_design import M, V, G, F
+from scipy.optimize import root
 
 q_curr = [0.523, -0.785]
 
@@ -12,12 +13,12 @@ q_curr = [0.523, -0.785]
 T = forward_kinematics(q_curr)
 p_current = T @ [0, 0, 0, 1]
 
-p_target = [0.7, 0.3, 0, 1]
-q_target = inverse_kinematics(p_target, L1, L2, elbow_up=True)
-qd_target = [0, 0]
+p_arb = [0.7, 0.3, 0, 1]
+q_arb = inverse_kinematics(p_arb, L1, L2, elbow_up=True)
+qd_arb = [0, 0]
 
 # Manipulability - measure how far away from singularity
-J = jacobian(q_target, L1, L2)
+J = jacobian(q_arb, L1, L2)
 detJ = np.linalg.det(J)
 if np.isclose(detJ, 0.0):
     print("Manipulator at singular configuration")
@@ -26,9 +27,9 @@ else:
     w = np.sqrt(detJJT)
     print("Manipulability w: ", w)
 
-M_arb = M(q_target)
-V_arb = V(q_target, qd_target)
-G_arb = G(q_target)
+M_arb = M(q_arb)
+V_arb = V(q_arb, qd_arb)
+G_arb = G(q_arb)
 
 """
 Linearizing about q0, qd0, qd0, tau0
@@ -76,17 +77,28 @@ dM_dq = lambda q: np.array([
     ]
 ])
 
-tau = G(q_target)
-qdd = np.linalg.inv(M(q_target)) @ (tau - V_arb - G_arb - (F @ qd_target).reshape(2, 1))
+"""
+Equilibrium point of open loop system
+M(q)(0) + 0 + G(q) + 0 = tau
+tau = G(q), but tau = 0
+G(q) = 0
+
+[pi/2, 0], [pi/2, pi], [-pi/2, 0], [-pi/2, pi]
+"""
+
+# Static arbitrary x = (q_arb, qd=0)
+tau = G(q_arb)
+
+qdd = np.linalg.inv(M(q_arb)) @ (tau - V_arb - G_arb - (F @ qd_arb).reshape(2, 1))
 
 Minv = np.linalg.inv(M_arb)
 
-dM_dq_12 = dM_dq(q_target)
+dM_dq_12 = dM_dq(q_arb)
 dM_dq_1 = dM_dq_12[0]
 dM_dq_2 = dM_dq_12[1]
 Minv_dM_dq_qdd = -Minv @ dM_dq_1 @ qdd - Minv @ dM_dq_2 @ qdd
-Aq = Minv_dM_dq_qdd - Minv @ (dV_dq(q_target, qd_target) + dG_dq(q_target))
-Aqd = -Minv @ (dV_dqd(q_target, qd_target) + dF_dqd)
+Aq = Minv_dM_dq_qdd - Minv @ (dV_dq(q_arb, qd_arb) + dG_dq(q_arb))
+Aqd = -Minv @ (dV_dqd(q_arb, qd_arb) + dF_dqd)
 
 A = np.block([
     [np.zeros((2, 2)), np.eye(2)],

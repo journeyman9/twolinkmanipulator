@@ -124,3 +124,11 @@ G = lambda q: np.array([
     ])
 
 F = np.diag([b1, b2])
+
+"""
+M(q)*qdd + C(q, qd)*qd + G(q) + F*qd = T
+"""
+C = lambda q, qd: np.array([
+    [-m2*l1*l2*np.sin(q[1])*qd[1],      -m2*l1*l2*np.sin(q[1])*(qd[0] + qd[1])],
+    [m2*l1*l2*np.sin(q[1])*qd[0],       0]
+])

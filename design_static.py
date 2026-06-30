@@ -12,12 +12,12 @@ q_curr = [0.523, -0.785]
 T = forward_kinematics(q_curr)
 p_current = T @ [0, 0, 0, 1]
 
-p_target = [0.7, 0.3, 0, 1]
-q_target = inverse_kinematics(p_target, L1, L2, elbow_up=True)
-qd_target = [0, 0]
+p_arb = [0.7, 0.3, 0, 1]
+q_arb = inverse_kinematics(p_arb, L1, L2, elbow_up=True)
+qd_arb = [0, 0]
 
 # Manipulability - measure how far away from singularity
-J = jacobian(q_target, L1, L2)
+J = jacobian(q_arb, L1, L2)
 detJ = np.linalg.det(J)
 if np.isclose(detJ, 0.0):
     print("Manipulator at singular configuration")
@@ -26,9 +26,9 @@ else:
     w = np.sqrt(detJJT)
     print("Manipulability w: ", w)
 
-M_arb = M(q_target)
-V_arb = V(q_target, qd_target)
-G_arb = G(q_target)
+M_arb = M(q_arb)
+V_arb = V(q_arb, qd_arb)
+G_arb = G(q_arb)
 
 """
 Choose tau0 = G(q) for static config
@@ -54,7 +54,7 @@ Minv = np.linalg.inv(M_arb)
 
 A = np.block([
     [np.zeros((2, 2)), np.eye(2)],
-    [-Minv @ dG_dq(q_target),  np.zeros((2, 2))]
+    [-Minv @ dG_dq(q_arb),  np.zeros((2, 2))]
 ])
 
 print("\nA: \n", A)

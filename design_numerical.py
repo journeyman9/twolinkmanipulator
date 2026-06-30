@@ -12,12 +12,13 @@ q_curr = [0.523, -0.785]
 T = forward_kinematics(q_curr)
 p_current = T @ [0, 0, 0, 1]
 
-p_target = [0.7, 0.3, 0, 1]
-q_target = inverse_kinematics(p_target, L1, L2, elbow_up=True)
-qd_target = [0, 0]
+p_arb = [0.7, 0.3, 0, 1]
+q_arb = inverse_kinematics(p_arb, L1, L2, elbow_up=True)
+qd_arb = [0, 0]
+qdd_arb = [0, 0]
 
 # Manipulability - measure how far away from singularity
-J = jacobian(q_target, L1, L2)
+J = jacobian(q_arb, L1, L2)
 detJ = np.linalg.det(J)
 if np.isclose(detJ, 0.0):
     print("Manipulator at singular configuration")
@@ -26,9 +27,9 @@ else:
     w = np.sqrt(detJJT)
     print("Manipulability w: ", w)
 
-M_arb = M(q_target)
-V_arb = V(q_target, qd_target)
-G_arb = G(q_target)
+M_arb = M(q_arb)
+V_arb = V(q_arb, qd_arb)
+G_arb = G(q_arb)
 
 """
 Linearize about q0, qd0, qd0, tau0
@@ -76,8 +77,14 @@ def linearize(x_eq, u_eq):
 
     return A, B
 
-x0 = np.concatenate((q_target, qd_target))
-u0 = G_arb.flatten()
+x0 = np.concatenate((q_arb, qd_arb))
+
+# Static arbitrary x = (q_arb, qd=0)
+#u0 = G_arb.flatten()
+
+# Trajectory
+u0 = M_arb @ qdd_arb + V_arb.flatten() + G_arb.flatten()
+
 A, B = linearize(x0, u0)
 print("\nA: \n", A)
 print("\nB: \n", B)
